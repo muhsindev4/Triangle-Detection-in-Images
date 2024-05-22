@@ -1,28 +1,92 @@
+# Triangle Detection in Images
 
-### Step 2: Push Your Code to GitHub
+This project uses OpenCV to detect triangles in images and determine their orientation (upward or downward).
 
-Assuming you have already created a GitHub repository and set it up locally, use the following commands to add your code and push it to GitHub:
+## Requirements
 
-1. Open a terminal and navigate to your project directory.
-2. Initialize a git repository if you haven't already:
+- Python 3.x
+- OpenCV
+- NumPy
+
+## Installation
+
+1. Install the required Python packages:
     ```sh
-    git init
-    ```
-3. Add your files to the repository:
-    ```sh
-    git add detect_triangles.py README.md
-    ```
-4. Commit your changes:
-    ```sh
-    git commit -m "Initial commit - add triangle detection script and README"
-    ```
-5. Add your GitHub repository as a remote (replace `<YOUR-GITHUB-REPO-URL>` with the URL of your GitHub repository):
-    ```sh
-    git remote add origin <YOUR-GITHUB-REPO-URL>
-    ```
-6. Push your code to GitHub:
-    ```sh
-    git push -u origin main
+    pip install opencv-python numpy
     ```
 
-This will push your code to the `main` branch of your GitHub repository. If your default branch is `master`, replace `main` with `master` in the `git push` command.
+## Usage
+
+1. Place your image in the same directory as the script and name it `image.png`.
+2. Run the script:
+    ```sh
+    python detect_triangles.py
+    ```
+
+## How It Works
+
+The script processes the input image to detect contours, approximates the contours to polygons, and checks if the polygon is a triangle. If a triangle is detected, it determines its orientation (upward or downward) and highlights it on the image.
+
+## Code
+
+```python
+import cv2
+import numpy as np
+
+# Function to check if a contour is a triangle
+def is_triangle(contour):
+    # Approximate contour using Douglas-Peucker algorithm
+    epsilon = 0.03 * cv2.arcLength(contour, True)
+    approx = cv2.approxPolyDP(contour, epsilon, True)
+
+    # Check if the contour has 3 vertices
+    if len(approx) == 3:
+        return True
+    else:
+        return False
+
+# Function to check if a triangle is upward or downward
+def triangle_orientation(contour):
+    # Get the vertices of the triangle
+    vertices = np.squeeze(contour)
+
+    # Calculate the slopes of the sides of the triangle
+    slope1 = (vertices[1][1] - vertices[0][1]) / (vertices[1][0] - vertices[0][0])
+    slope2 = (vertices[2][1] - vertices[1][1]) / (vertices[2][0] - vertices[1][0])
+    slope3 = (vertices[2][1] - vertices[0][1]) / (vertices[2][0] - vertices[0][0])
+
+    # Determine the orientation based on the slopes
+    if slope1 > 0 and slope2 > 0 and slope3 < 0:
+        return "Upward"
+    elif slope1 < 0 and slope2 < 0 and slope3 > 0:
+        return "Downward"
+    else:
+        return "Unknown"
+
+# Load the image
+image = cv2.imread('image.png')
+
+if image is None:
+    print('Error: Could not load image')
+else:
+    # Preprocessing
+    blurred = cv2.GaussianBlur(image, (5, 5), 0)
+    gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
+    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
+
+    # Find contours in the image
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Check each contour for triangles
+    for contour in contours:
+        if is_triangle(contour):
+            orientation = triangle_orientation(contour)
+            print(f'Triangle found! Orientation: {orientation}')
+            # You can further process the triangle contour here
+            # For example, draw it on the image
+            cv2.drawContours(image, [contour], -1, (0, 255, 0), 2)
+
+    # Display the image with detected triangles
+    cv2.imshow('Image with Triangles', image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
